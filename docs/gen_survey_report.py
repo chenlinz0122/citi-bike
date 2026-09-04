@@ -8,9 +8,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml.ns import qn
 import config
 
-MD = os.path.join(config.BASE_DIR, "docs", "调研报告-纽约公共自行车.md")
-OUTS = [os.path.join(config.BASE_DIR, "docs", "调研报告-纽约公共自行车.docx"),
-        r"D:\OneDrive\Desktop\项目提交材料\调研报告-纽约公共自行车.docx"]
+MD = os.path.join(config.BASE_DIR, "docs", "调研报告-周晨琳.md")
+OUTS = [os.path.join(config.BASE_DIR, "docs", "调研报告-周晨琳.docx"),
+        r"D:\OneDrive\Desktop\项目提交材料\调研报告-周晨琳.docx"]
 
 doc = Document()
 
