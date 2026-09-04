@@ -169,7 +169,7 @@ s0.placeholders[1].text = "《软件开发实践1》　班级01·小组02　2026
 
 slide("项目背景与数据", [
     "选题4：纽约 Citi Bike 公开骑行数据分析",
-    "官方数据：2026 年 6-7 月，974MB / 499 万条行程",
+    "官方数据：2026 年 7 月（202607），974MB / 499 万条行程",
     "目标：清洗→统计→可视化→聚类与预测",
     "数据源：citibikenyc.com/system-data"],
     os.path.join(M5F, "start_point_map.png"))
