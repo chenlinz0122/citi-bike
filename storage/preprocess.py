@@ -79,10 +79,12 @@ def _clean_chunk(df):
         & df["ride_duration"].between(config.MIN_DURATION, config.MAX_DURATION)
         & df["start_station"].notna() & df["end_station"].notna()
         & (df["start_station"].str.strip() != "")
-        & df["start_lat"].notna() & df["start_lng"].notna()
+        & (df["end_station"].str.strip() != "")
+        & df["start_lat"].between(config.LAT_MIN, config.LAT_MAX)
+        & df["start_lng"].between(config.LNG_MIN, config.LNG_MAX)
+        & df["end_lat"].between(config.LAT_MIN, config.LAT_MAX)
+        & df["end_lng"].between(config.LNG_MIN, config.LNG_MAX)
     )
-    # 经纬度合理范围（纽约附近，宽松起见 0<lat<90, -180<lng<180）
-    mask &= df["start_lat"].between(0, 90) & df["start_lng"].between(-180, 180)
 
     df = df.loc[mask].copy()
 
@@ -95,8 +97,8 @@ def _clean_chunk(df):
     # 只保留标准表列
     keep = ["ride_duration", "start_time", "end_time", "start_station",
             "end_station", "start_lat", "start_lng", "end_lat", "end_lng",
-            "user_type", "rideable_type", "start_date", "hour", "weekday",
-            "is_weekend"]
+            "user_type", "ride_id", "rideable_type", "start_date", "hour",
+            "weekday", "is_weekend"]
     keep = [c for c in keep if c in df.columns]
     return df[keep]
 
@@ -122,6 +124,11 @@ def run(sample_size=None):
 
     full = pd.concat(chunks, ignore_index=True)
     del chunks
+
+    # 去重（防同行程重复入库）
+    if "ride_id" in full.columns:
+        full = full.drop_duplicates(subset=["ride_id"])
+
     print(f"[preprocess] 原始 {total_rows:,} 行 -> 有效 {kept_rows:,} 行"
           f"（剔除率 {1 - kept_rows / max(total_rows, 1):.1%}）")
 

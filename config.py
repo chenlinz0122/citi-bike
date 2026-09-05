@@ -62,7 +62,7 @@ RAW_ALIASES = {
     "end_lng":      ["end station longitude", "end_lng"],
     "user_type":    ["usertype", "member_casual"],
     "gender":       ["gender"],
-    "bikeid":       ["bikeid", "ride_id"],
+    "ride_id":      ["ride_id", "bikeid"],
     "rideable_type":  ["rideable_type"],
     "start_station_id": ["start station id", "start_station_id"],
     "end_station_id":   ["end station id", "end_station_id"],
@@ -90,7 +90,7 @@ CANONICAL_SCHEMA = {
     "end_lng":       "float64，经度",
     "user_type":     "str，Subscriber | Customer",
     "gender":        "int64，0未知/1男/2女（可缺省）",
-    "bikeid":        "str，车辆/行程ID",
+    "ride_id":       "str，行程ID",
     "rideable_type": "str，classic | electric（可选）",
     "start_date":    "datetime64[ns]，由 start_time 派生",
     "hour":          "int，0-23",
@@ -104,6 +104,10 @@ CANONICAL_SCHEMA = {
 # 有效骑行时长范围（秒），过滤异常：<60秒(可能假启动)，>24h(异常)
 MIN_DURATION = 60
 MAX_DURATION = 24 * 3600
+
+# 经纬度合理范围（纽约附近，宽松起见；可收紧到 40.5~41.0 / -74.3~-73.7）
+LAT_MIN, LAT_MAX = 0, 90
+LNG_MIN, LNG_MAX = -180, 180
 
 # 抽样：若原始数据量过大，随机抽取 N 条用于分析（0=不抽样，用全部）
 SAMPLE_SIZE = 200000

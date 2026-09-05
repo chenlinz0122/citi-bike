@@ -37,7 +37,7 @@
 
 | 原始字段名 | 含义 | 示例 | 备注 |
 |---|---|---|---|
-| `ride_id` | 行程ID | `DD531B4CAE426168` | 直接归为 `bikeid` |
+| `ride_id` | 行程ID | `DD531B4CAE426168` | 归为 `ride_id` |
 | `rideable_type` | 车辆类型 | `electric_bike` | 归为 `rideable_type` |
 | `started_at` | 出发时间 | `2026-07-11 16:56:58.899` | 归为 `start_time` |
 | `ended_at` | 到达时间 | `2026-07-11 17:05:48.330` | 归为 `end_time` |
@@ -71,7 +71,7 @@
 | `start_lat` / `start_lng` | float64 | 出发经纬度 |
 | `end_lat` / `end_lng` | float64 | 到达经纬度 |
 | `user_type` | str | **`Subscriber`（会员）/ `Customer`（单次）** |
-| `bikeid` | str | 车辆/行程ID |
+| `ride_id` | str | 行程ID |
 | `rideable_type` | str | `classic` / `electric`（可选） |
 | `start_date` | datetime(date) | 出发日期（由 start_time 派生） |
 | `hour` | int 0–23 | 出发小时 |
@@ -89,7 +89,8 @@
    （见`config.USER_TYPE_MAP`），保证统计里会员占比不为 0%。
 3. **时间解析**：`start_time`/`end_time`→`datetime64`，无法解析置 `NaT`。
 4. **时长补算**：若缺 `ride_duration`，用 `end_time - start_time` 补（秒）。
-5. **异常过滤**：保留 `60 <= ride_duration <= 24h`，剔除 <60s（假启动）与 >24h。
+5. **异常过滤**：保留 `60 <= ride_duration <= 24h`，剔除 <60s（假启动）与 >24h；
+   并剔除起讫站点缺失/为空、经纬度缺失或越界（`0<lat<90`、`-180<lng<180`）的行。
 6. **抽样**：全量约数百万行，默认按 `config.SAMPLE_SIZE=200000` 抽样，
    固定 `random_state=42`，保证可复现。
 7. **派生特征**：`start_date`/`hour`/`weekday`/`is_weekend` 由 `start_time` 派生。

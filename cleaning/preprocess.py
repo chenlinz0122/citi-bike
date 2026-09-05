@@ -13,10 +13,11 @@ cleaning/preprocess.py —— 数据清洗模块
   3. 车辆类型归一：classic_bike->classic，electric_bike->electric
   4. 时间解析：started_at/ended_at -> datetime64，无法解析置 NaT
   5. 时长补算：2026 新格式无 tripduration，用 ended_at - started_at 计算（秒）
-  6. 异常过滤：仅保留 60 秒 <= 时长 <= 24 小时
-  7. 抽样：默认 200000 条，固定 random_state=42（--sample 0 表示不抽样）
-  8. 派生特征：start_date / hour / weekday / is_weekend
-  9. 落盘：cleaned/clean_citibike.csv，utf-8-sig，index=False
+  6. 异常过滤：60s<=时长<=24h，时间有效，站点非空，经纬度合理范围
+  7. 去重排序：按 ride_id 去重，按 start_time 排序
+  8. 抽样：默认 200000 条，固定 random_state=42（--sample 0 表示不抽样）
+  9. 派生特征：start_date / hour / weekday / is_weekend
+ 10. 落盘：cleaned/clean_citibike.csv，utf-8-sig，index=False
 
 用  法：
     python cleaning/preprocess.py                # 默认抽样 20 万条
@@ -42,7 +43,7 @@ CLEAN_FILE = os.path.join(CLEANED_DIR, "clean_citibike.csv")
 # ----------------------------------------------------------------------
 # 原始表头 -> 标准列名（2026 新格式）
 RENAME_MAP = {
-    "ride_id":             "bikeid",
+    "ride_id":             "ride_id",
     "rideable_type":       "rideable_type",
     "started_at":          "start_time",
     "ended_at":            "end_time",
@@ -55,12 +56,20 @@ RENAME_MAP = {
     "member_casual":       "user_type",
 }
 
-USER_TYPE_MAP = {"member": "Subscriber", "casual": "Customer"}
+USER_TYPE_MAP = {
+    "member": "Subscriber", "subscriber": "Subscriber",
+    "casual": "Customer", "customer": "Customer",
+}
 
-RIDEABLE_TYPE_MAP = {"classic_bike": "classic", "electric_bike": "electric"}
+RIDEABLE_TYPE_MAP = {
+    "classic_bike": "classic", "electric_bike": "electric",
+    "docked_bike": "docked",
+}
 
 MIN_DURATION = 60                 # 最小有效时长（秒），剔除假启动
 MAX_DURATION = 24 * 3600          # 最大有效时长（秒），剔除异常长骑行
+LAT_MIN, LAT_MAX = 0, 90          # 纬度合理范围（纽约可收紧到 40.5~41.0）
+LNG_MIN, LNG_MAX = -180, 180      # 经度合理范围（纽约可收紧到 -74.3~-73.7）
 SAMPLE_SIZE = 200000              # 抽样条数（0 = 不抽样）
 RANDOM_STATE = 42                 # 固定随机种子，保证可复现
 
@@ -69,7 +78,7 @@ CANONICAL_COLUMNS = [
     "ride_duration", "start_time", "end_time",
     "start_station", "end_station",
     "start_lat", "start_lng", "end_lat", "end_lng",
-    "user_type", "bikeid", "rideable_type",
+    "user_type", "ride_id", "rideable_type",
     "start_date", "hour", "weekday", "is_weekend",
 ]
 
@@ -90,7 +99,8 @@ def _clean_shard(path):
     df["ride_duration"] = (df["end_time"] - df["start_time"]).dt.total_seconds()
 
     # 4) 枚举字段归一
-    df["user_type"] = df["user_type"].map(USER_TYPE_MAP)
+    df["user_type"] = (df["user_type"].astype(str).str.strip().str.lower()
+                       .map(USER_TYPE_MAP).fillna("Unknown"))
     df["rideable_type"] = (
         df["rideable_type"].map(RIDEABLE_TYPE_MAP).fillna(df["rideable_type"])
     )
@@ -99,10 +109,18 @@ def _clean_shard(path):
     for c in ("start_lat", "start_lng", "end_lat", "end_lng"):
         df[c] = pd.to_numeric(df[c], errors="coerce")
 
-    # 6) 异常过滤：时长范围 + 时间/经纬度有效
-    df = df[(df["ride_duration"] >= MIN_DURATION)
-            & (df["ride_duration"] <= MAX_DURATION)]
-    df = df.dropna(subset=["start_time", "end_time"])
+    # 6) 异常过滤：时长范围 + 时间有效 + 站点非空 + 经纬度合理
+    df = df[
+        df["ride_duration"].between(MIN_DURATION, MAX_DURATION)
+        & df["start_time"].notna() & df["end_time"].notna()
+        & df["start_station"].notna() & df["end_station"].notna()
+        & (df["start_station"].str.strip() != "")
+        & (df["end_station"].str.strip() != "")
+        & df["start_lat"].between(LAT_MIN, LAT_MAX)
+        & df["start_lng"].between(LNG_MIN, LNG_MAX)
+        & df["end_lat"].between(LAT_MIN, LAT_MAX)
+        & df["end_lng"].between(LNG_MIN, LNG_MAX)
+    ]
 
     return df
 
@@ -120,8 +138,12 @@ def run(sample_size=SAMPLE_SIZE):
     # 逐个分片清洗后合并
     frames = [_clean_shard(f) for f in files]
     df = pd.concat(frames, ignore_index=True)
+
+    # 去重 + 按时间排序（防同行程重复入库，保证下游有序）
+    df = df.drop_duplicates(subset=["ride_id"])
+    df = df.sort_values("start_time").reset_index(drop=True)
     raw_rows = len(df)
-    print(f"[清洗] 分片合并 + 异常过滤后：{raw_rows:,} 条")
+    print(f"[清洗] 分片合并 + 异常过滤 + 去重后：{raw_rows:,} 条")
 
     # 7) 抽样（固定随机种子，可复现）
     if sample_size and len(df) > sample_size:
