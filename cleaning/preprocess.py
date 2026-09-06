@@ -34,8 +34,8 @@ import pandas as pd
 # 路径配置（项目根目录 = 本文件上两级）
 # ----------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DIR = os.path.join(BASE_DIR, "raw")          # 原始分片数据目录
-CLEANED_DIR = os.path.join(BASE_DIR, "cleaned")  # 清洗结果目录
+RAW_DIR = os.path.join(BASE_DIR, "data", "raw")          # 原始分片数据目录
+CLEANED_DIR = os.path.join(BASE_DIR, "data", "cleaned")  # 清洗结果目录
 CLEAN_FILE = os.path.join(CLEANED_DIR, "clean_citibike.csv")
 
 # ----------------------------------------------------------------------

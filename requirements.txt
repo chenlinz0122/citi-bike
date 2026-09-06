@@ -1,21 +1,22 @@
 # =====================================================================
 # requirements.txt —— 锁环境：固定所有核心依赖库版本
-# 生成环境：Python 3.13.13 / Windows
+# 生成环境：Python 3.10.11 / Windows
 # 安装命令：pip install -r requirements.txt
 # 说明：如需站点地图(folium)，另行安装 requirements-optional.txt
 # =====================================================================
 
 # ---------- 数据处理 ----------
-pandas==3.0.3
-numpy==2.4.6
+pandas==2.3.3
+numpy==2.2.6
 python-dateutil==2.9.0.post0
 
 # ---------- 可视化 ----------
 matplotlib==3.10.8
 pillow==12.2.0
+seaborn==0.13.2
 
 # ---------- 机器学习（聚类 + 预测）----------
-scikit-learn==1.9.0
-scipy==1.17.1
+scikit-learn==1.7.2
+scipy==1.15.3
 threadpoolctl==3.6.0
 joblib==1.6.0
